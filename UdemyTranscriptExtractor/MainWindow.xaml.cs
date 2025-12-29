@@ -38,6 +38,7 @@ public partial class MainWindow : Window
         
         // Connect ViewModel to MainWindow
         _viewModel.OnExtractTriggered = async () => await TriggerExtractAsync();
+        _viewModel.OnOpenSettingsRequested = () => OpenSettingsWindow();
         
         // Setup notifications
         _notificationService.NotificationRequested += OnNotificationRequested;
@@ -324,6 +325,15 @@ public partial class MainWindow : Window
     private void CloseWindow(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+    
+    private void OpenSettingsWindow()
+    {
+        var settingsWindow = new SettingsWindow(_settingsService, _viewModel)
+        {
+            Owner = this
+        };
+        settingsWindow.ShowDialog();
     }
     
     private const string JavaScriptInjectionCode = @"

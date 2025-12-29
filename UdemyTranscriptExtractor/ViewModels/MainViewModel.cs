@@ -13,6 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly NotificationService _notificationService;
     
     public Action? OnExtractTriggered { get; set; }
+    public Action? OnOpenSettingsRequested { get; set; }
     
     [ObservableProperty]
     private bool _isSidebarVisible = true;
@@ -86,7 +87,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenSettingsAsync()
     {
-        _notificationService.ShowInfo("Settings dialog coming soon!", "Info");
+        OnOpenSettingsRequested?.Invoke();
         await Task.CompletedTask;
     }
     
