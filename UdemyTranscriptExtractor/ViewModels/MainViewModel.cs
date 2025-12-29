@@ -12,6 +12,8 @@ public partial class MainViewModel : ObservableObject
     private readonly SettingsService _settingsService;
     private readonly NotificationService _notificationService;
     
+    public Action? OnExtractTriggered { get; set; }
+    
     [ObservableProperty]
     private bool _isSidebarVisible = true;
     
@@ -43,6 +45,7 @@ public partial class MainViewModel : ObservableObject
         _notificationService = notificationService;
         
         LoadRecentFilesAsync();
+        LoadTotalExtractedCount();
     }
     
     [RelayCommand]
@@ -54,37 +57,17 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ExtractTranscriptAsync()
     {
-        if (IsExtracting)
+        if (IsExtracting || !TranscriptDetected)
             return;
         
         try
         {
             IsExtracting = true;
             
-            // Simulate extraction
-            await Task.Delay(1000);
+            // Trigger extraction through MainWindow
+            OnExtractTriggered?.Invoke();
             
-            var extractedFile = await _transcriptService.ExtractTranscriptAsync(
-                "<html>Sample HTML</html>",
-                "Lecture 05",
-                "Python Course"
-            );
-            
-            if (extractedFile != null)
-            {
-                TotalExtracted++;
-                LastExtractedFile = extractedFile.FileName;
-                RecentFiles.Insert(0, extractedFile);
-                
-                if (RecentFiles.Count > 5)
-                    RecentFiles.RemoveAt(RecentFiles.Count - 1);
-                
-                _notificationService.ShowSuccess($"Transcript saved to {extractedFile.FileName}", "Success!");
-            }
-            else
-            {
-                _notificationService.ShowError("Failed to extract transcript", "Error");
-            }
+            await Task.Delay(100); // Small delay for UI feedback
         }
         catch (Exception ex)
         {
@@ -109,7 +92,8 @@ public partial class MainViewModel : ObservableObject
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = "Select Output Folder",
-            FileName = "Folder Selection"
+            FileName = "Select Folder",
+            Filter = "Folder|*.folder"
         };
         
         if (dialog.ShowDialog() == true)
@@ -132,7 +116,7 @@ public partial class MainViewModel : ObservableObject
             var settings = await _settingsService.LoadSettingsAsync();
             RecentFiles.Clear();
             
-            foreach (var filePath in settings.RecentFiles)
+            foreach (var filePath in settings.RecentFiles.Take(10))
             {
                 if (System.IO.File.Exists(filePath))
                 {
@@ -142,16 +126,28 @@ public partial class MainViewModel : ObservableObject
                         FileName = fileInfo.Name,
                         FilePath = filePath,
                         ExtractedAt = fileInfo.LastWriteTime,
-                        FileSize = fileInfo.Length
+                        FileSize = fileInfo.Length,
+                        LectureName = System.IO.Path.GetFileNameWithoutExtension(fileInfo.Name)
                     });
                 }
             }
-            
-            TotalExtracted = RecentFiles.Count;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading recent files: {ex.Message}");
+        }
+    }
+    
+    private async void LoadTotalExtractedCount()
+    {
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync();
+            TotalExtracted = settings.RecentFiles.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading total count: {ex.Message}");
         }
     }
 }

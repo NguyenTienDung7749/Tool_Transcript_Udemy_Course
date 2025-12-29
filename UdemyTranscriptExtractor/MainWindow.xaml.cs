@@ -1,11 +1,14 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Web.WebView2.Core;
 using UdemyTranscriptExtractor.ViewModels;
 using UdemyTranscriptExtractor.Services;
 using UdemyTranscriptExtractor.Helpers;
 using UdemyTranscriptExtractor.Controls;
+using UdemyTranscriptExtractor.Models;
 
 namespace UdemyTranscriptExtractor;
 
@@ -13,6 +16,8 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly NotificationService _notificationService;
+    private readonly FileService _fileService;
+    private readonly SettingsService _settingsService;
     private readonly EasterEggHandler _easterEggHandler;
     private readonly ConfettiEffect _confettiEffect;
     private Microsoft.Web.WebView2.Wpf.WebView2? _webView;
@@ -22,13 +27,17 @@ public partial class MainWindow : Window
         InitializeComponent();
         
         // Initialize services
-        var settingsService = new SettingsService();
+        _settingsService = new SettingsService();
         _notificationService = new NotificationService();
-        var transcriptService = new TranscriptService(settingsService);
+        _fileService = new FileService(_settingsService);
+        var transcriptService = new TranscriptService(_settingsService);
         
         // Initialize ViewModel
-        _viewModel = new MainViewModel(transcriptService, settingsService, _notificationService);
+        _viewModel = new MainViewModel(transcriptService, _settingsService, _notificationService);
         DataContext = _viewModel;
+        
+        // Connect ViewModel to MainWindow
+        _viewModel.OnExtractTriggered = async () => await TriggerExtractAsync();
         
         // Setup notifications
         _notificationService.NotificationRequested += OnNotificationRequested;
@@ -87,13 +96,14 @@ public partial class MainWindow : Window
             
             if (_webView.CoreWebView2 != null)
             {
-                _webView.CoreWebView2.Navigate("https://www.udemy.com");
+                // Setup message handler
+                _webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceived;
                 
-                // Listen for navigation
-                _webView.CoreWebView2.NavigationCompleted += (s, e) =>
-                {
-                    CheckForTranscript();
-                };
+                // Setup navigation completed handler
+                _webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
+                
+                // Navigate to Udemy
+                _webView.CoreWebView2.Navigate("https://www.udemy.com");
             }
         }
         catch (Exception ex)
@@ -102,14 +112,124 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CheckForTranscript()
+    private async void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
-        // Simulate transcript detection
-        // In a real scenario, you would check the page content
-        var random = new Random();
-        if (random.Next(0, 3) == 0) // 33% chance to simulate transcript detection
+        if (_webView?.CoreWebView2 == null)
+            return;
+            
+        try
         {
-            ShowTranscriptBanner();
+            await _webView.CoreWebView2.ExecuteScriptAsync(JavaScriptInjectionCode);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error injecting JavaScript: {ex.Message}");
+        }
+    }
+    
+    private async void WebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        try
+        {
+            var json = e.TryGetWebMessageAsString();
+            if (string.IsNullOrEmpty(json))
+                return;
+                
+            var message = JsonSerializer.Deserialize<WebMessage>(json);
+            if (message == null)
+                return;
+            
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                switch (message.Type)
+                {
+                    case "transcriptAvailable":
+                        _viewModel.TranscriptDetected = true;
+                        ShowTranscriptBanner();
+                        break;
+                        
+                    case "transcriptDetected":
+                        await HandleTranscriptExtracted(message);
+                        break;
+                        
+                    case "transcriptNotFound":
+                        _viewModel.TranscriptDetected = false;
+                        _notificationService.ShowWarning("No transcript found on this page", "Transcript Not Found");
+                        break;
+                }
+            });
+        }
+        catch (JsonException ex)
+        {
+            _notificationService.ShowError("Invalid data received from browser", "Error");
+            Console.WriteLine($"JSON parse error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _notificationService.ShowError($"Error processing message: {ex.Message}", "Error");
+            Console.WriteLine($"WebMessage error: {ex.Message}");
+        }
+    }
+    
+    private async Task HandleTranscriptExtracted(WebMessage message)
+    {
+        try
+        {
+            string courseName = ExtractCourseName(message.CourseTitle);
+            
+            var file = await _fileService.SaveTranscriptAsync(
+                message.Content,
+                courseName,
+                message.LectureId
+            );
+            
+            if (file != null)
+            {
+                _viewModel.LastExtractedFile = file.FileName;
+                _viewModel.TotalExtracted++;
+                _viewModel.RecentFiles.Insert(0, file);
+                
+                while (_viewModel.RecentFiles.Count > 10)
+                {
+                    _viewModel.RecentFiles.RemoveAt(10);
+                }
+                
+                _notificationService.ShowSuccess($"Saved: {file.FileName}", "Success!");
+                _confettiEffect.Burst(30);
+            }
+        }
+        catch (Exception ex)
+        {
+            _notificationService.ShowError($"Error saving transcript: {ex.Message}", "Save Error");
+        }
+    }
+    
+    private string ExtractCourseName(string pageTitle)
+    {
+        // Remove " | Udemy" suffix
+        pageTitle = Regex.Replace(pageTitle, @"\s*\|\s*Udemy.*$", "");
+        
+        // Remove lecture numbers like " - 05 - "
+        pageTitle = Regex.Replace(pageTitle, @"\s*-\s*\d+\s*-\s*", " ");
+        
+        return pageTitle.Trim();
+    }
+    
+    public async Task TriggerExtractAsync()
+    {
+        if (_webView?.CoreWebView2 == null)
+        {
+            _notificationService.ShowError("Browser not ready", "Error");
+            return;
+        }
+        
+        try
+        {
+            await _webView.CoreWebView2.ExecuteScriptAsync("window.extractTranscriptNow();");
+        }
+        catch (Exception ex)
+        {
+            _notificationService.ShowError($"Error triggering extraction: {ex.Message}", "Error");
         }
     }
 
@@ -204,4 +324,106 @@ public partial class MainWindow : Window
     {
         Close();
     }
+    
+    private const string JavaScriptInjectionCode = @"
+(function() {
+    // Prevent multiple injections
+    if (window.udemyTranscriptExtractorInjected) {
+        return;
+    }
+    window.udemyTranscriptExtractorInjected = true;
+    
+    // Function to extract transcript
+    function extractTranscript() {
+        // Try multiple Udemy selectors (they change over time)
+        const selectors = [
+            '.transcript--cue-container--',
+            '.transcript--transcript-container--',
+            '[data-purpose=""transcript-cue""]',
+            '.ud-component--transcript--cue-container',
+        ];
+        
+        let transcriptContainer = null;
+        for (const selector of selectors) {
+            transcriptContainer = document.querySelector(selector);
+            if (transcriptContainer) break;
+        }
+        
+        if (!transcriptContainer) {
+            window.chrome.webview.postMessage({
+                type: 'transcriptNotFound'
+            });
+            return;
+        }
+        
+        // Extract all transcript cues
+        const cues = transcriptContainer.querySelectorAll('[data-purpose=""transcript-cue""], .ud-component--transcript--cue');
+        
+        if (cues.length === 0) {
+            window.chrome.webview.postMessage({
+                type: 'transcriptNotFound'
+            });
+            return;
+        }
+        
+        let fullTranscript = '';
+        cues.forEach(cue => {
+            try {
+                const timeElement = cue.querySelector('.transcript--cue-timestamp--, [data-purpose=""cue-timestamp""]');
+                const time = timeElement ? timeElement.textContent.trim() : '[00:00]';
+                
+                const textElement = cue.querySelector('.transcript--cue-text--, [data-purpose=""cue-text""]');
+                const text = textElement ? textElement.textContent.trim() : '';
+                
+                if (text) {
+                    fullTranscript += `[${time}] ${text}\n`;
+                }
+            } catch (e) {
+                console.error('Error extracting cue:', e);
+            }
+        });
+        
+        const pageTitle = document.title;
+        const urlParts = window.location.pathname.split('/');
+        const courseSlug = urlParts[2] || 'Unknown-Course';
+        const lectureId = urlParts[4] || 'lecture';
+        
+        window.chrome.webview.postMessage({
+            type: 'transcriptDetected',
+            content: fullTranscript,
+            courseTitle: pageTitle,
+            courseSlug: courseSlug,
+            lectureId: lectureId,
+            url: window.location.href
+        });
+    }
+    
+    // Monitor DOM for transcript appearance
+    const observer = new MutationObserver((mutations) => {
+        const transcriptExists = document.querySelector('.transcript--cue-container--, .ud-component--transcript--cue-container');
+        if (transcriptExists) {
+            window.chrome.webview.postMessage({
+                type: 'transcriptAvailable'
+            });
+            observer.disconnect();
+        }
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // Check if transcript already exists
+    const transcriptExists = document.querySelector('.transcript--cue-container--, .ud-component--transcript--cue-container');
+    if (transcriptExists) {
+        window.chrome.webview.postMessage({
+            type: 'transcriptAvailable'
+        });
+    }
+    
+    // Make extract function available globally
+    window.extractTranscriptNow = extractTranscript;
+})();
+";
 }
