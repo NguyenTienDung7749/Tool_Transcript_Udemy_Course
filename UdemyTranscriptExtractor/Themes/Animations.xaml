@@ -1,0 +1,126 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Fade In Animation -->
+    <Storyboard x:Key="FadeInAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                        From="0" To="1"
+                        Duration="0:0:0.3"
+                        AccelerationRatio="0.4" DecelerationRatio="0.6"/>
+    </Storyboard>
+
+    <!-- Fade Out Animation -->
+    <Storyboard x:Key="FadeOutAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                        From="1" To="0"
+                        Duration="0:0:0.2"
+                        AccelerationRatio="0.4" DecelerationRatio="0.6"/>
+    </Storyboard>
+
+    <!-- Slide In From Left Animation -->
+    <Storyboard x:Key="SlideInFromLeftAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                        From="-300" To="0"
+                        Duration="0:0:0.25">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseOut"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                        From="0" To="1"
+                        Duration="0:0:0.25"/>
+    </Storyboard>
+
+    <!-- Slide Out To Left Animation -->
+    <Storyboard x:Key="SlideOutToLeftAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                        From="0" To="-300"
+                        Duration="0:0:0.25">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseIn"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                        From="1" To="0"
+                        Duration="0:0:0.25"/>
+    </Storyboard>
+
+    <!-- Pulse Animation -->
+    <Storyboard x:Key="PulseAnimation" RepeatBehavior="Forever">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                        From="1" To="1.05"
+                        Duration="0:0:1"
+                        AutoReverse="True">
+            <DoubleAnimation.EasingFunction>
+                <SineEase EasingMode="EaseInOut"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                        From="1" To="1.05"
+                        Duration="0:0:1"
+                        AutoReverse="True">
+            <DoubleAnimation.EasingFunction>
+                <SineEase EasingMode="EaseInOut"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- Scale Up Animation -->
+    <Storyboard x:Key="ScaleUpAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                        From="0.9" To="1"
+                        Duration="0:0:0.3">
+            <DoubleAnimation.EasingFunction>
+                <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                        From="0.9" To="1"
+                        Duration="0:0:0.3">
+            <DoubleAnimation.EasingFunction>
+                <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- Rotate Animation -->
+    <Storyboard x:Key="RotateAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                        From="0" To="360"
+                        Duration="0:0:1"
+                        RepeatBehavior="Forever"/>
+    </Storyboard>
+
+    <!-- Success Checkmark Animation -->
+    <Storyboard x:Key="SuccessCheckmarkAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                        From="0" To="1"
+                        Duration="0:0:0.4">
+            <DoubleAnimation.EasingFunction>
+                <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="5"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                        From="0" To="1"
+                        Duration="0:0:0.4">
+            <DoubleAnimation.EasingFunction>
+                <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="5"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- Slide Down From Top Animation (for banner) -->
+    <Storyboard x:Key="SlideDownFromTopAnimation">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                        From="-100" To="0"
+                        Duration="0:0:0.3">
+            <DoubleAnimation.EasingFunction>
+                <CubicEase EasingMode="EaseOut"/>
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                        From="0" To="1"
+                        Duration="0:0:0.3"/>
+    </Storyboard>
+
+</ResourceDictionary>
