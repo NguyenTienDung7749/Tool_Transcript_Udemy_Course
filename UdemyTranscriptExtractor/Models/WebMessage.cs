@@ -21,4 +21,7 @@ public class WebMessage
     
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
+    
+    [JsonPropertyName("domain")]
+    public string Domain { get; set; } = string.Empty;
 }

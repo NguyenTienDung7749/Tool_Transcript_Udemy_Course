@@ -35,6 +35,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _currentUrl = "https://www.udemy.com";
     
+    [ObservableProperty]
+    private string _udemyBaseUrl = "https://fpl.udemy.com";
+    
     public MainViewModel(
         TranscriptService transcriptService,
         SettingsService settingsService,
@@ -46,6 +49,7 @@ public partial class MainViewModel : ObservableObject
         
         LoadRecentFilesAsync();
         LoadTotalExtractedCount();
+        LoadUdemyBaseUrl();
     }
     
     [RelayCommand]
@@ -148,6 +152,38 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading total count: {ex.Message}");
+        }
+    }
+    
+    private async void LoadUdemyBaseUrl()
+    {
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync();
+            UdemyBaseUrl = settings.UdemyBaseUrl ?? "https://fpl.udemy.com";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading Udemy URL: {ex.Message}");
+        }
+    }
+    
+    partial void OnUdemyBaseUrlChanged(string value)
+    {
+        SaveUdemyBaseUrlAsync(value);
+    }
+    
+    private async void SaveUdemyBaseUrlAsync(string url)
+    {
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync();
+            settings.UdemyBaseUrl = url;
+            await _settingsService.SaveSettingsAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving Udemy URL: {ex.Message}");
         }
     }
 }

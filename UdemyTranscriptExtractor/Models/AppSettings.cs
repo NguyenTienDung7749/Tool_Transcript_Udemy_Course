@@ -12,4 +12,5 @@ public class AppSettings
     public int MaxRecentFiles { get; set; } = 10;
     public int TotalExtractedCount { get; set; } = 0;
     public List<string> RecentCourses { get; set; } = new();
+    public string UdemyBaseUrl { get; set; } = "https://fpl.udemy.com";
 }
