@@ -38,6 +38,7 @@ public partial class MainWindow : Window
         
         // Connect ViewModel to MainWindow
         _viewModel.OnExtractTriggered = async () => await TriggerExtractAsync();
+        _viewModel.OnOpenSettingsRequested = () => OpenSettingsWindow();
         
         // Setup notifications
         _notificationService.NotificationRequested += OnNotificationRequested;
@@ -102,8 +103,9 @@ public partial class MainWindow : Window
                 // Setup navigation completed handler
                 _webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 
-                // Navigate to Udemy
-                _webView.CoreWebView2.Navigate("https://www.udemy.com");
+                // Use configurable URL (default: fpl.udemy.com for Udemy Business)
+                string udemyUrl = _viewModel.UdemyBaseUrl ?? "https://fpl.udemy.com";
+                _webView.CoreWebView2.Navigate(udemyUrl);
             }
         }
         catch (Exception ex)
@@ -325,6 +327,18 @@ public partial class MainWindow : Window
         Close();
     }
     
+    private void OpenSettingsWindow()
+    {
+        var settingsWindow = new SettingsWindow(_settingsService, _viewModel)
+        {
+            Owner = this
+        };
+        settingsWindow.ShowDialog();
+        
+        // Reload URL after settings window closes
+        _viewModel.LoadUdemyBaseUrl();
+    }
+    
     private const string JavaScriptInjectionCode = @"
 (function() {
     // Prevent multiple injections
@@ -333,20 +347,50 @@ public partial class MainWindow : Window
     }
     window.udemyTranscriptExtractorInjected = true;
     
-    // Function to extract transcript
+    // Check if we're on a Udemy domain (supports business subdomains)
+    const isUdemyDomain = window.location.hostname.endsWith('udemy.com');
+    if (!isUdemyDomain) return;
+    
+    // Function to extract transcript with flexible selectors
     function extractTranscript() {
-        // Try multiple Udemy selectors (they change over time)
+        // Updated selectors that work for both Udemy and Udemy Business
         const selectors = [
+            // Standard Udemy selectors
             '.transcript--cue-container--',
             '.transcript--transcript-container--',
             '[data-purpose=""transcript-cue""]',
             '.ud-component--transcript--cue-container',
+            // Udemy Business specific selectors (if different)
+            '[class*=""transcript--cue-container""]',
+            '[class*=""transcript-cue""]',
+            '.transcript-container',
+            // Generic fallbacks
+            '[data-purpose*=""transcript""]',
         ];
         
         let transcriptContainer = null;
         for (const selector of selectors) {
-            transcriptContainer = document.querySelector(selector);
-            if (transcriptContainer) break;
+            try {
+                transcriptContainer = document.querySelector(selector);
+                if (transcriptContainer) {
+                    console.log('Found transcript with selector:', selector);
+                    break;
+                }
+            } catch (e) {
+                // Invalid selector, skip
+            }
+        }
+        
+        if (!transcriptContainer) {
+            // Try finding by partial class name match
+            const allElements = document.querySelectorAll('[class*=""transcript""]');
+            for (const el of allElements) {
+                if (el.querySelectorAll('[class*=""cue""]').length > 0) {
+                    transcriptContainer = el;
+                    console.log('Found transcript container by class pattern');
+                    break;
+                }
+            }
         }
         
         if (!transcriptContainer) {
@@ -356,8 +400,29 @@ public partial class MainWindow : Window
             return;
         }
         
-        // Extract all transcript cues
-        const cues = transcriptContainer.querySelectorAll('[data-purpose=""transcript-cue""], .ud-component--transcript--cue');
+        // Updated cue selectors for both platforms
+        const cueSelectors = [
+            '[data-purpose=""transcript-cue""]',
+            '.ud-component--transcript--cue',
+            '[class*=""transcript--cue--""]',
+            '[class*=""cue-container""]',
+        ];
+        
+        let cues = [];
+        for (const selector of cueSelectors) {
+            try {
+                cues = transcriptContainer.querySelectorAll(selector);
+                if (cues.length > 0) {
+                    console.log('Found', cues.length, 'cues with selector:', selector);
+                    break;
+                }
+            } catch (e) {}
+        }
+        
+        if (cues.length === 0) {
+            // Fallback: find all elements with timestamp-like content
+            cues = transcriptContainer.querySelectorAll('[class*=""cue""]');
+        }
         
         if (cues.length === 0) {
             window.chrome.webview.postMessage({
@@ -369,11 +434,48 @@ public partial class MainWindow : Window
         let fullTranscript = '';
         cues.forEach(cue => {
             try {
-                const timeElement = cue.querySelector('.transcript--cue-timestamp--, [data-purpose=""cue-timestamp""]');
-                const time = timeElement ? timeElement.textContent.trim() : '[00:00]';
+                // Multiple timestamp selectors
+                const timeSelectors = [
+                    '.transcript--cue-timestamp--',
+                    '[data-purpose=""cue-timestamp""]',
+                    '[class*=""timestamp""]',
+                    'span:first-child'
+                ];
                 
-                const textElement = cue.querySelector('.transcript--cue-text--, [data-purpose=""cue-text""]');
-                const text = textElement ? textElement.textContent.trim() : '';
+                let time = '[00:00]';
+                for (const sel of timeSelectors) {
+                    try {
+                        const timeEl = cue.querySelector(sel);
+                        if (timeEl && /\d+:\d+/.test(timeEl.textContent)) {
+                            time = timeEl.textContent.trim();
+                            break;
+                        }
+                    } catch (e) {}
+                }
+                
+                // Multiple text selectors
+                const textSelectors = [
+                    '.transcript--cue-text--',
+                    '[data-purpose=""cue-text""]',
+                    '[class*=""cue-text""]',
+                    'span:last-child'
+                ];
+                
+                let text = '';
+                for (const sel of textSelectors) {
+                    try {
+                        const textEl = cue.querySelector(sel);
+                        if (textEl) {
+                            text = textEl.textContent.trim();
+                            if (text && text !== time) break;
+                        }
+                    } catch (e) {}
+                }
+                
+                // Fallback: get all text content and remove timestamp
+                if (!text) {
+                    text = cue.textContent.replace(time, '').trim();
+                }
                 
                 if (text) {
                     fullTranscript += `[${time}] ${text}\n`;
@@ -383,10 +485,24 @@ public partial class MainWindow : Window
             }
         });
         
+        // Get course and lecture info
         const pageTitle = document.title;
         const urlParts = window.location.pathname.split('/');
-        const courseSlug = urlParts[2] || 'Unknown-Course';
-        const lectureId = urlParts[4] || 'lecture';
+        
+        // Handle different URL structures
+        // Standard: /course/course-name/learn/lecture/12345
+        // Business might be slightly different
+        let courseSlug = 'Unknown-Course';
+        let lectureId = 'lecture';
+        
+        for (let i = 0; i < urlParts.length; i++) {
+            if (urlParts[i] === 'course' && urlParts[i + 1]) {
+                courseSlug = urlParts[i + 1];
+            }
+            if (urlParts[i] === 'lecture' && urlParts[i + 1]) {
+                lectureId = urlParts[i + 1];
+            }
+        }
         
         window.chrome.webview.postMessage({
             type: 'transcriptDetected',
@@ -394,18 +510,30 @@ public partial class MainWindow : Window
             courseTitle: pageTitle,
             courseSlug: courseSlug,
             lectureId: lectureId,
-            url: window.location.href
+            url: window.location.href,
+            domain: window.location.hostname
         });
     }
     
     // Monitor DOM for transcript appearance
     const observer = new MutationObserver((mutations) => {
-        const transcriptExists = document.querySelector('.transcript--cue-container--, .ud-component--transcript--cue-container');
-        if (transcriptExists) {
-            window.chrome.webview.postMessage({
-                type: 'transcriptAvailable'
-            });
-            observer.disconnect();
+        const transcriptSelectors = [
+            '.transcript--cue-container--',
+            '.ud-component--transcript--cue-container',
+            '[class*=""transcript""][class*=""container""]',
+            '[data-purpose*=""transcript""]'
+        ];
+        
+        for (const selector of transcriptSelectors) {
+            try {
+                if (document.querySelector(selector)) {
+                    window.chrome.webview.postMessage({
+                        type: 'transcriptAvailable'
+                    });
+                    observer.disconnect();
+                    return;
+                }
+            } catch (e) {}
         }
     });
     
@@ -414,13 +542,25 @@ public partial class MainWindow : Window
         subtree: true
     });
     
-    // Check if transcript already exists
-    const transcriptExists = document.querySelector('.transcript--cue-container--, .ud-component--transcript--cue-container');
-    if (transcriptExists) {
-        window.chrome.webview.postMessage({
-            type: 'transcriptAvailable'
-        });
-    }
+    // Check immediately
+    setTimeout(() => {
+        const transcriptSelectors = [
+            '.transcript--cue-container--',
+            '.ud-component--transcript--cue-container',
+            '[class*=""transcript""][class*=""container""]'
+        ];
+        
+        for (const selector of transcriptSelectors) {
+            try {
+                if (document.querySelector(selector)) {
+                    window.chrome.webview.postMessage({
+                        type: 'transcriptAvailable'
+                    });
+                    return;
+                }
+            } catch (e) {}
+        }
+    }, 1000);
     
     // Make extract function available globally
     window.extractTranscriptNow = extractTranscript;
