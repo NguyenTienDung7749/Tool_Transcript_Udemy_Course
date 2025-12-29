@@ -62,7 +62,15 @@ public class SettingsService
         
         if (settings.RecentFiles.Count > settings.MaxRecentFiles)
             settings.RecentFiles = settings.RecentFiles.Take(settings.MaxRecentFiles).ToList();
+        
+        settings.TotalExtractedCount++;
             
         await SaveSettingsAsync(settings);
+    }
+    
+    public async Task<int> GetTotalExtractedCountAsync()
+    {
+        var settings = await LoadSettingsAsync();
+        return settings.TotalExtractedCount;
     }
 }

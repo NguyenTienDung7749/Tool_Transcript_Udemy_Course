@@ -44,6 +44,12 @@ public class FileService
     {
         try
         {
+            // Validate content
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                throw new Exception("Transcript content is empty");
+            }
+            
             // 1. Ensure output folder is set
             var settings = await _settingsService.LoadSettingsAsync();
             var outputFolder = settings.OutputFolder;

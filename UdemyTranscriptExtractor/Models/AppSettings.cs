@@ -9,5 +9,7 @@ public class AppSettings
     public bool ShowNotifications { get; set; } = true;
     public string Theme { get; set; } = "Dark";
     public List<string> RecentFiles { get; set; } = new();
-    public int MaxRecentFiles { get; set; } = 5;
+    public int MaxRecentFiles { get; set; } = 10;
+    public int TotalExtractedCount { get; set; } = 0;
+    public List<string> RecentCourses { get; set; } = new();
 }

@@ -143,7 +143,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var settings = await _settingsService.LoadSettingsAsync();
-            TotalExtracted = settings.RecentFiles.Count;
+            TotalExtracted = settings.TotalExtractedCount;
         }
         catch (Exception ex)
         {
