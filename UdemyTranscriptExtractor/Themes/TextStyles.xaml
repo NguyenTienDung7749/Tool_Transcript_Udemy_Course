@@ -5,9 +5,26 @@
         <ResourceDictionary Source="Colors.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
+    <!-- Heading Style - Modern Typography -->
+    <Style x:Key="HeadingStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Display, Segoe UI"/>
+        <Setter Property="FontSize" Value="28"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- Subheading Style -->
+    <Style x:Key="SubheadingStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Display, Segoe UI"/>
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+
     <!-- Title Text Style -->
     <Style x:Key="TitleTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
+        <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Display, Segoe UI"/>
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
@@ -15,7 +32,7 @@
 
     <!-- Subtitle Text Style -->
     <Style x:Key="SubtitleTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
+        <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Display, Segoe UI"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
@@ -23,7 +40,7 @@
 
     <!-- Body Text Style -->
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontFamily" Value="Inter, Segoe UI"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
@@ -31,7 +48,7 @@
 
     <!-- Caption Text Style -->
     <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontFamily" Value="Inter, Segoe UI"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
@@ -46,7 +63,7 @@
 
     <!-- Gradient Text Style -->
     <Style x:Key="GradientTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
+        <Setter Property="FontFamily" Value="Inter, Segoe UI Variable Display, Segoe UI"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource AccentGradientBrush}"/>

@@ -65,24 +65,16 @@ public class TranscriptService
     
     private string ExtractTranscriptFromHtml(string html)
     {
-        // This is a placeholder implementation
-        // In a real scenario, you would parse the HTML and extract transcript content
-        // For demonstration, we'll return a sample transcript
+        // Note: The actual transcript extraction is handled by JavaScript in MainWindow.xaml.cs
+        // This method receives the already-extracted transcript content from the WebView2 message
+        // We simply pass through the content that was sent from the browser
         
         if (string.IsNullOrEmpty(html))
             return string.Empty;
             
-        // Look for transcript markers in HTML
-        // This is simplified - actual implementation would be more sophisticated
-        var sb = new StringBuilder();
-        sb.AppendLine("=== Transcript Extracted ===");
-        sb.AppendLine();
-        sb.AppendLine("This is a sample transcript extracted from the Udemy lecture.");
-        sb.AppendLine("In a production environment, this would contain the actual transcript content.");
-        sb.AppendLine();
-        sb.AppendLine("Extracted at: " + DateTime.Now.ToString("F"));
-        
-        return sb.ToString();
+        // The html parameter is actually the extracted transcript text from JavaScript
+        // No parsing needed - just return it as-is
+        return html;
     }
     
     private string SanitizeFileName(string fileName)

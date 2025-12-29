@@ -46,7 +46,7 @@
                                     <Storyboard>
                                         <ColorAnimation Storyboard.TargetName="border"
                                                       Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                      To="#21262D"
+                                                      To="#1A2028"
                                                       Duration="0:0:0.15"/>
                                         <DoubleAnimation Storyboard.TargetName="border"
                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
@@ -68,7 +68,7 @@
                                     <Storyboard>
                                         <ColorAnimation Storyboard.TargetName="border"
                                                       Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                      To="#161B22"
+                                                      To="#12171E"
                                                       Duration="0:0:0.15"/>
                                         <DoubleAnimation Storyboard.TargetName="border"
                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
@@ -102,6 +102,13 @@
                 <ScaleTransform/>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Primary Button Style -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
     </Style>
 
     <!-- Accent Button Style -->
