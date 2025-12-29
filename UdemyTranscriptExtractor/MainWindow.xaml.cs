@@ -334,6 +334,9 @@ public partial class MainWindow : Window
             Owner = this
         };
         settingsWindow.ShowDialog();
+        
+        // Reload URL after settings window closes
+        _viewModel.LoadUdemyBaseUrl();
     }
     
     private const string JavaScriptInjectionCode = @"

@@ -39,9 +39,6 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnUdemyBaseUrlChanged(string value)
     {
         SaveUdemyBaseUrlAsync(value);
-        
-        // Also update the MainViewModel
-        _mainViewModel.UdemyBaseUrl = value;
     }
 
     private async void SaveUdemyBaseUrlAsync(string url)

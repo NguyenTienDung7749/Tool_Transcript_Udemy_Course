@@ -156,7 +156,12 @@ public partial class MainViewModel : ObservableObject
         }
     }
     
-    private async void LoadUdemyBaseUrl()
+    public void LoadUdemyBaseUrl()
+    {
+        LoadUdemyBaseUrlAsync();
+    }
+    
+    private async void LoadUdemyBaseUrlAsync()
     {
         try
         {
