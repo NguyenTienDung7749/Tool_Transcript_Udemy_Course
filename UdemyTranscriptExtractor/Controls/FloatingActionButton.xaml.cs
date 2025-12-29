@@ -58,7 +58,7 @@ public partial class FloatingActionButton : UserControl
         
         var shadowAnimation = new DoubleAnimation
         {
-            To = 24,
+            To = 28,
             Duration = TimeSpan.FromMilliseconds(150)
         };
         
@@ -101,7 +101,7 @@ public partial class FloatingActionButton : UserControl
         
         var shadowAnimation = new DoubleAnimation
         {
-            To = 16,
+            To = 20,
             Duration = TimeSpan.FromMilliseconds(150)
         };
         

@@ -5,21 +5,28 @@
         <ResourceDictionary Source="Colors.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <!-- Glassmorphism Card Style -->
+    <!-- Premium Glassmorphism Card Style -->
     <Style x:Key="GlassmorphismCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource GlassBackgroundBrush}"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#2012171E" Offset="0"/>
+                    <GradientStop Color="#1512171E" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
         <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="16"/>
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.2" Color="{StaticResource ShadowColor}"/>
+                <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.3" Color="{StaticResource ShadowColor}"/>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <!-- Modern Card Style -->
+    <!-- Modern Card Style with Premium Colors -->
     <Style x:Key="ModernCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SecondaryBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
@@ -33,7 +40,7 @@
         </Setter>
     </Style>
 
-    <!-- Hover Card Style -->
+    <!-- Hover Card Style with Lift Effect -->
     <Style x:Key="HoverCardStyle" TargetType="Border" BasedOn="{StaticResource ModernCardStyle}">
         <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
         <Setter Property="RenderTransform">
@@ -47,11 +54,18 @@
                     <BeginStoryboard>
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                           To="-2"
-                                           Duration="0:0:0.15"/>
+                                           To="-4"
+                                           Duration="0:0:0.2">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
                             <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
-                                           To="18"
-                                           Duration="0:0:0.15"/>
+                                           To="20"
+                                           Duration="0:0:0.2"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                           To="0.5"
+                                           Duration="0:0:0.2"/>
                         </Storyboard>
                     </BeginStoryboard>
                 </Trigger.EnterActions>
@@ -60,15 +74,36 @@
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
                                            To="0"
-                                           Duration="0:0:0.15"/>
+                                           Duration="0:0:0.2">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
                             <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
                                            To="12"
-                                           Duration="0:0:0.15"/>
+                                           Duration="0:0:0.2"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                           To="0.3"
+                                           Duration="0:0:0.2"/>
                         </Storyboard>
                     </BeginStoryboard>
                 </Trigger.ExitActions>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- Premium Accent Card with Gradient -->
+    <Style x:Key="AccentCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TertiaryBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.4" Color="#FF6B35"/>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>
