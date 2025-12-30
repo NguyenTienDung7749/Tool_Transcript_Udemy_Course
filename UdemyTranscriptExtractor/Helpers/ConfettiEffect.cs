@@ -92,7 +92,7 @@ public class ConfettiEffect
         // Rotation
         var rotateTransform = new RotateTransform();
         particle.RenderTransform = rotateTransform;
-        particle.RenderTransformOrigin = new Point(0.5, 0.5);
+        particle.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
         
         var rotateAnimation = new DoubleAnimation
         {

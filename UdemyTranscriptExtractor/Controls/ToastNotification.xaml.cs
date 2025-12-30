@@ -6,7 +6,7 @@ using UdemyTranscriptExtractor.Services;
 
 namespace UdemyTranscriptExtractor.Controls;
 
-public partial class ToastNotification : UserControl
+public partial class ToastNotification : System.Windows.Controls.UserControl
 {
     public ToastNotification()
     {
@@ -97,7 +97,7 @@ public partial class ToastNotification : UserControl
         
         storyboard.Completed += (s, e) =>
         {
-            if (Parent is Panel panel)
+            if (Parent is System.Windows.Controls.Panel panel)
                 panel.Children.Remove(this);
         };
         
@@ -115,19 +115,19 @@ public partial class ToastNotification : UserControl
         {
             case NotificationType.Success:
                 SuccessIcon.Visibility = Visibility.Visible;
-                IconBackground.Color = (Color)ColorConverter.ConvertFromString("#3FB950")!;
+                IconBackground.Color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#3FB950")!;
                 break;
             case NotificationType.Error:
                 ErrorIcon.Visibility = Visibility.Visible;
-                IconBackground.Color = (Color)ColorConverter.ConvertFromString("#F85149")!;
+                IconBackground.Color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#F85149")!;
                 break;
             case NotificationType.Info:
                 InfoIcon.Visibility = Visibility.Visible;
-                IconBackground.Color = (Color)ColorConverter.ConvertFromString("#58A6FF")!;
+                IconBackground.Color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF")!;
                 break;
             case NotificationType.Warning:
                 WarningIcon.Visibility = Visibility.Visible;
-                IconBackground.Color = (Color)ColorConverter.ConvertFromString("#D29922")!;
+                IconBackground.Color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#D29922")!;
                 break;
         }
     }

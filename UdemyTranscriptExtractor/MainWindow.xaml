@@ -21,6 +21,7 @@
                 <ResourceDictionary Source="/Themes/TextStyles.xaml"/>
                 <ResourceDictionary Source="/Themes/Cards.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -197,7 +198,8 @@
                                                Margin="0,0,0,8"
                                                Padding="12"
                                                Cursor="Hand"
-                                               ToolTip="{Binding FilePath}">
+                                               ToolTip="{Binding FilePath}"
+                                               MouseLeftButtonUp="RecentFile_Click">
                                             <StackPanel>
                                                 <TextBlock Text="{Binding LectureName}"
                                                           Style="{StaticResource BodyTextStyle}"
@@ -239,6 +241,16 @@
                     </ScrollViewer>
                 </Border>
 
+                <!-- FAB in Sidebar (Bottom Left) -->
+                <controls:FloatingActionButton
+                    Grid.Column="0"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Left"
+                    Margin="24"
+                    Visibility="{Binding TranscriptDetected, Converter={StaticResource BoolToVisConverter}}"
+                    Command="{Binding ExtractTranscriptCommand}"
+                    IsExtracting="{Binding IsExtracting}"/>
+
                 <!-- WebView2 Container -->
                 <Grid Grid.Column="1" Margin="16">
                     <Border Background="{StaticResource SecondaryBackgroundBrush}"
@@ -264,42 +276,10 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Floating Action Button -->
-                            <controls:FloatingActionButton
-                                x:Name="ExtractButton"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Margin="24"
-                                Command="{Binding ExtractTranscriptCommand}"
-                                IsExtracting="{Binding IsExtracting}"/>
-
-                            <!-- Transcript Detected Banner -->
-                            <Border x:Name="TranscriptBanner"
-                                   HorizontalAlignment="Stretch"
-                                   VerticalAlignment="Top"
-                                   Background="{StaticResource SuccessGradientBrush}"
-                                   CornerRadius="12,12,0,0"
-                                   Padding="16,12"
-                                   Visibility="Collapsed"
-                                   RenderTransformOrigin="0.5,0">
-                                <Border.RenderTransform>
-                                    <TranslateTransform x:Name="BannerTransform" Y="-100"/>
-                                </Border.RenderTransform>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="✓" 
-                                              FontSize="18"
-                                              FontWeight="Bold"
-                                              Foreground="White"
-                                              Margin="0,0,8,0"/>
-                                    <TextBlock Text="Transcript Detected - Click the button to extract!"
-                                              Style="{StaticResource BodyTextStyle}"
-                                              Foreground="White"
-                                              VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
                         </Grid>
                     </Border>
                 </Grid>
+
             </Grid>
 
             <!-- Bottom Status Bar -->
@@ -348,6 +328,9 @@
                     </StackPanel>
                 </Grid>
             </Border>
+
+
+
 
             <!-- Toast Container -->
             <Canvas x:Name="ToastContainer"

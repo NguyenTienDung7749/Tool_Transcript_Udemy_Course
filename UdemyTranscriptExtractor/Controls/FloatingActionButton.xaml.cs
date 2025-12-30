@@ -5,7 +5,7 @@ using System.Windows.Media.Animation;
 
 namespace UdemyTranscriptExtractor.Controls;
 
-public partial class FloatingActionButton : UserControl
+public partial class FloatingActionButton : System.Windows.Controls.UserControl
 {
     public static readonly DependencyProperty IsExtractingProperty =
         DependencyProperty.Register(nameof(IsExtracting), typeof(bool), typeof(FloatingActionButton),
@@ -39,7 +39,7 @@ public partial class FloatingActionButton : UserControl
         StartPulse();
     }
     
-    private void OnMouseEnter(object sender, MouseEventArgs e)
+    private void OnMouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
         var storyboard = new Storyboard();
         
@@ -83,7 +83,7 @@ public partial class FloatingActionButton : UserControl
         storyboard.Begin();
     }
     
-    private void OnMouseLeave(object sender, MouseEventArgs e)
+    private void OnMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
         var storyboard = new Storyboard();
         

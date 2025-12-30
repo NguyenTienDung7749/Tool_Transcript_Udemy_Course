@@ -24,7 +24,7 @@ public class EasterEggHandler
         _window.KeyDown += OnKeyDown;
     }
     
-    private void OnKeyDown(object sender, KeyEventArgs e)
+    private void OnKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         _inputSequence.Add(e.Key);
         

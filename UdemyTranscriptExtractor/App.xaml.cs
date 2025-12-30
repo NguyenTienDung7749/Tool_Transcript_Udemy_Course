@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace UdemyTranscriptExtractor;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -11,7 +11,7 @@ public partial class App : Application
         // Set up unhandled exception handling
         DispatcherUnhandledException += (sender, args) =>
         {
-            MessageBox.Show($"An unexpected error occurred: {args.Exception.Message}", 
+            System.Windows.MessageBox.Show($"An unexpected error occurred: {args.Exception.Message}", 
                           "Error", 
                           MessageBoxButton.OK, 
                           MessageBoxImage.Error);

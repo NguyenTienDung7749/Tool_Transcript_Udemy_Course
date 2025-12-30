@@ -99,15 +99,20 @@ public partial class MainWindow : Window
             
             if (_webView.CoreWebView2 != null)
             {
-                // Setup message handler
+                // Setup message handler FIRST before anything else
                 _webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceived;
                 
-                // Setup navigation completed handler
+                // Add script to run on every document creation (more reliable than NavigationCompleted)
+                await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(JavaScriptInjectionCode);
+                
+                // Setup navigation completed handler for debugging
                 _webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 
                 // Use configurable URL (default: fpl.udemy.com for Udemy Business)
                 string udemyUrl = _viewModel.UdemyBaseUrl ?? "https://fpl.udemy.com";
                 _webView.CoreWebView2.Navigate(udemyUrl);
+                
+                System.Diagnostics.Debug.WriteLine("[WebView2] Initialization complete, WebMessageReceived handler attached");
             }
         }
         catch (Exception ex)
@@ -134,40 +139,57 @@ public partial class MainWindow : Window
         return Task.CompletedTask;
     }
 
-    private async void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    private void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
-        if (_webView?.CoreWebView2 == null)
-            return;
-            
-        try
-        {
-            await _webView.CoreWebView2.ExecuteScriptAsync(JavaScriptInjectionCode);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error injecting JavaScript: {ex.Message}");
-        }
+        // Script is now injected via AddScriptToExecuteOnDocumentCreatedAsync
+        // This handler is kept for debugging purposes
+        System.Diagnostics.Debug.WriteLine($"[WebView2] Navigation completed: {e.IsSuccess}, URL: {_webView?.Source}");
     }
     
     private async void WebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         try
         {
+            // Since JavaScript sends JSON string (not object), use TryGetWebMessageAsString
             var json = e.TryGetWebMessageAsString();
+            
+            // Debug output - THIS SHOULD SHOW IN VISUAL STUDIO OUTPUT WINDOW
+            System.Diagnostics.Debug.WriteLine($"[WebView2] *** RECEIVED MESSAGE ***: {json}");
+            System.Diagnostics.Trace.WriteLine($"[WebView2] *** RECEIVED MESSAGE ***: {json}");
+            
+            // Show a visual notification to confirm message was received
+            _notificationService.ShowInfo($"Message received!", "Debug");
+            
             if (string.IsNullOrEmpty(json))
+            {
+                // Fallback to WebMessageAsJson
+                json = e.WebMessageAsJson;
+                System.Diagnostics.Debug.WriteLine($"[WebView2] Fallback to WebMessageAsJson: {json}");
+            }
+            
+            if (string.IsNullOrEmpty(json))
+            {
+                System.Diagnostics.Debug.WriteLine("[WebView2] Message is empty");
                 return;
-                
+            }
+            
             var message = JsonSerializer.Deserialize<WebMessage>(json);
             if (message == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[WebView2] Failed to deserialize message");
                 return;
+            }
             
-            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            System.Diagnostics.Debug.WriteLine($"[WebView2] Message type: {message.Type}");
+            
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
             {
                 switch (message.Type)
                 {
                     case "transcriptAvailable":
+                        System.Diagnostics.Debug.WriteLine("[WebView2] Setting TranscriptDetected = true");
                         _viewModel.TranscriptDetected = true;
-                        ShowTranscriptBanner();
+                        _notificationService.ShowSuccess("Transcript found! Click to extract.", "Ready");
                         break;
                         
                     case "transcriptDetected":
@@ -175,19 +197,22 @@ public partial class MainWindow : Window
                         break;
                         
                     case "transcriptNotFound":
+                        System.Diagnostics.Debug.WriteLine("[WebView2] Received transcriptNotFound message");
                         _viewModel.TranscriptDetected = false;
-                        _notificationService.ShowWarning("No transcript found on this page", "Transcript Not Found");
+                        _notificationService.ShowWarning("No transcript available for this lecture", "Not Found");
                         break;
                 }
             });
         }
         catch (JsonException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[WebView2] JSON parse error: {ex.Message}");
             _notificationService.ShowError("Invalid data received from browser", "Error");
             Console.WriteLine($"JSON parse error: {ex.Message}");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[WebView2] Error: {ex.Message}");
             _notificationService.ShowError($"Error processing message: {ex.Message}", "Error");
             Console.WriteLine($"WebMessage error: {ex.Message}");
         }
@@ -211,9 +236,9 @@ public partial class MainWindow : Window
                 _viewModel.TotalExtracted++;
                 _viewModel.RecentFiles.Insert(0, file);
                 
-                while (_viewModel.RecentFiles.Count > 10)
+                while (_viewModel.RecentFiles.Count > 5)
                 {
-                    _viewModel.RecentFiles.RemoveAt(10);
+                    _viewModel.RecentFiles.RemoveAt(5);
                 }
                 
                 _notificationService.ShowSuccess($"Saved: {file.FileName}", "Success!");
@@ -239,53 +264,47 @@ public partial class MainWindow : Window
     
     public async Task TriggerExtractAsync()
     {
+        System.Diagnostics.Debug.WriteLine("[MainWindow] TriggerExtractAsync called");
+        
         if (_webView?.CoreWebView2 == null)
         {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Browser not ready");
             _notificationService.ShowError("Browser not ready", "Error");
             return;
         }
         
         try
         {
-            await _webView.CoreWebView2.ExecuteScriptAsync("window.extractTranscriptNow();");
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Executing window.extractTranscriptNow()");
+            await _webView.CoreWebView2.ExecuteScriptAsync("console.log('[UdemyExtractor] Manual extraction triggered'); window.extractTranscriptNow();");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Error triggering extraction: {ex.Message}");
             _notificationService.ShowError($"Error triggering extraction: {ex.Message}", "Error");
         }
     }
 
-    private void ShowTranscriptBanner()
+    private void RecentFile_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        TranscriptBanner.Visibility = Visibility.Visible;
-        
-        var storyboard = new Storyboard();
-        
-        var slideAnimation = new DoubleAnimation
+        try
         {
-            From = -100,
-            To = 0,
-            Duration = TimeSpan.FromMilliseconds(300),
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-        
-        var fadeAnimation = new DoubleAnimation
+            if (sender is FrameworkElement element && element.DataContext is Models.ExtractedFile file)
+            {
+                if (System.IO.File.Exists(file.FilePath))
+                {
+                    System.Diagnostics.Process.Start("notepad.exe", file.FilePath);
+                }
+                else
+                {
+                    _notificationService.ShowWarning($"File not found: {file.FileName}", "File Missing");
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            From = 0,
-            To = 1,
-            Duration = TimeSpan.FromMilliseconds(300)
-        };
-        
-        Storyboard.SetTarget(slideAnimation, BannerTransform);
-        Storyboard.SetTargetProperty(slideAnimation, new PropertyPath("Y"));
-        
-        Storyboard.SetTarget(fadeAnimation, TranscriptBanner);
-        Storyboard.SetTargetProperty(fadeAnimation, new PropertyPath("Opacity"));
-        
-        storyboard.Children.Add(slideAnimation);
-        storyboard.Children.Add(fadeAnimation);
-        
-        storyboard.Begin();
+            _notificationService.ShowError($"Cannot open file: {ex.Message}", "Error");
+        }
     }
 
     private void OnNotificationRequested(object? sender, NotificationEventArgs e)
@@ -367,94 +386,238 @@ public partial class MainWindow : Window
     }
     window.udemyTranscriptExtractorInjected = true;
     
+    console.log('[UdemyExtractor] Initializing transcript extractor...');
+    
+    // Check if WebView2 API is available
+    const hasWebView = !!(window.chrome && window.chrome.webview && window.chrome.webview.postMessage);
+    console.log('[UdemyExtractor] WebView2 API available:', hasWebView);
+    
+    if (!hasWebView) {
+        console.error('[UdemyExtractor] ERROR: window.chrome.webview is not available! PostMessage will not work.');
+        console.log('[UdemyExtractor] window.chrome:', typeof window.chrome);
+        console.log('[UdemyExtractor] window.chrome.webview:', window.chrome ? typeof window.chrome.webview : 'N/A');
+    }
+    
+    // Helper function to send messages to C# host
+    function sendMessageToHost(message) {
+        try {
+            if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+                // Send as JSON STRING for better compatibility
+                const jsonString = JSON.stringify(message);
+                console.log('[UdemyExtractor] Sending message to host:', jsonString);
+                window.chrome.webview.postMessage(jsonString);
+                console.log('[UdemyExtractor] Message sent successfully as string');
+                return true;
+            } else {
+                console.error('[UdemyExtractor] Cannot send message - WebView2 API not available');
+                return false;
+            }
+        } catch (error) {
+            console.error('[UdemyExtractor] Error sending message:', error);
+            return false;
+        }
+    }
+    
     // Check if we're on a Udemy domain (supports business subdomains)
     const isUdemyDomain = window.location.hostname.endsWith('udemy.com');
-    if (!isUdemyDomain) return;
+    if (!isUdemyDomain) {
+        console.log('[UdemyExtractor] Not a Udemy domain, exiting.');
+        return;
+    }
     
-    // Function to extract transcript with updated selectors for fpl.udemy.com
-    function extractTranscript() {
-        // Primary selector based on actual fpl.udemy.com structure
-        const cueTexts = document.querySelectorAll('[data-purpose=""cue-text""]');
+    // All possible transcript selectors for Udemy Business and regular Udemy
+    const transcriptPanelSelectors = [
+        '[data-purpose=\'transcript-panel\']',
+        '[data-purpose=\'transcript-cue-container\']',
+        '[data-purpose=\'cue-text\']',
+        '[class*=\'transcript--panel\']',
+        '[class*=\'transcript--transcript-panel\']',
+        '[class*=\'transcript--cue-container\']',
+        '[class*=\'transcript-panel\']',
+        '.ud-component--course-taking--transcript-panel',
+        '[data-testid=\'transcript-panel\']',
+        '#transcript-panel',
+        '[role=\'tabpanel\'][id*=\'transcript\']',
+        '.transcript-panel'
+    ];
+    
+    const cueTextSelectors = [
+        '[data-purpose=\'cue-text\']',
+        '[data-purpose=\'transcript-cue\'] span',
+        '[class*=\'transcript--cue-text\']',
+        '[class*=\'cue-text\']',
+        '[class*=\'transcript--cue-container\'] span',
+        '[class*=\'transcript-cue\'] span',
+        '.transcript-cue span',
+        '[data-purpose=\'transcript-cue-container\'] span'
+    ];
+    
+    // Function to find transcript button (toggle)
+    function findTranscriptButton() {
+        console.log('[UdemyExtractor] Looking for transcript button...');
         
-        if (cueTexts.length === 0) {
-            // Fallback selectors for different Udemy layouts
-            const fallbackSelectors = [
-                '.transcript--cue-container--Vuwj6 span',
-                '[class*=""transcript--cue-container""] span',
-                '.transcript--highlight-cue--ugVsE',
-                '.dashboard-transcript--transcript-panel-- span',
-                '[class*=""cue-text""]',
-                '.ud-component--transcript--cue span'
-            ];
+        // Strategy 1: Find SVG with aria-label containing transcript/Phiên âm
+        const svgByLabel = document.querySelector('svg[aria-label*=""Phiên âm""], svg[aria-label*=""transcript""], svg[aria-label*=""Transcript""]');
+        if (svgByLabel) {
+            const btn = svgByLabel.closest('button');
+            if (btn) {
+                console.log('[UdemyExtractor] Found button via aria-label');
+                return btn;
+            }
+        }
+
+        // Strategy 2: SVG Icon with xlink:href
+        const uses = document.querySelectorAll('use');
+        for (let i = 0; i < uses.length; i++) {
+            const href = uses[i].getAttribute('xlink:href') || uses[i].getAttribute('href');
+            if (href && href.includes('#icon-transcript')) {
+                const btn = uses[i].closest('button');
+                if (btn) {
+                    console.log('[UdemyExtractor] Found button via xlink:href');
+                    return btn;
+                }
+            }
+        }
+        
+        // Strategy 3: Data attribute
+        const btnByData = document.querySelector('button[data-purpose=""transcript-toggle""]');
+        if (btnByData) {
+            console.log('[UdemyExtractor] Found button via data-purpose');
+            return btnByData;
+        }
+        
+        console.warn('[UdemyExtractor] Transcript button NOT found with any strategy');
+        return null;
+    }
+    
+    // Function to find transcript elements
+    function findTranscriptElements() {
+        let bestElements = [];
+        
+        for (const selector of cueTextSelectors) {
+            try {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > bestElements.length) {
+                     bestElements = Array.from(elements);
+                     console.log('[UdemyExtractor] Improved match: Found', elements.length, 'elements with selector:', selector);
+                }
+            } catch (e) {
+                console.error('[UdemyExtractor] Error with selector:', selector, e);
+            }
+        }
+        
+        if (bestElements.length > 0) {
+            return bestElements;
+        }
+        return [];
+    }
+    
+    // Function to check if transcript panel is visible
+    function isTranscriptPanelVisible() {
+        // Check for the specific panel element
+        const panel = document.querySelector('[data-purpose=""transcript-panel""]');
+        if (panel) {
+            console.log('[UdemyExtractor] Transcript panel IS visible');
+            return true;
+        }
+        // Fallback: check for sidebar with transcript class
+        const sidebar = document.querySelector('[class*=""sidebar--transcript""]');
+        if (sidebar) {
+            console.log('[UdemyExtractor] Transcript sidebar IS visible');
+            return true;
+        }
+        console.log('[UdemyExtractor] Transcript panel NOT visible');
+        return false;
+    }
+    
+    // Function to extract transcript
+    async function extractTranscript() {
+        console.log('[UdemyExtractor] === STARTING EXTRACTION (Auto-Open Mode) ===');
+        
+        try {
+            // Step 1: Check if panel is open
+            let panelVisible = isTranscriptPanelVisible();
+            let elements = [];
             
-            let foundElements = [];
-            for (const selector of fallbackSelectors) {
-                try {
-                    const elements = document.querySelectorAll(selector);
-                    if (elements.length > 0) {
-                        foundElements = Array.from(elements);
-                        console.log('Found transcript with fallback selector:', selector);
-                        break;
+            // Step 2: If panel not visible, try to open it
+            if (!panelVisible) {
+                console.log('[UdemyExtractor] Panel not visible. Attempting to open...');
+                const btn = findTranscriptButton();
+                
+                if (btn) {
+                    console.log('[UdemyExtractor] Clicking transcript button...');
+                    btn.click();
+                    
+                    // Wait for panel to appear (max 8 seconds)
+                    console.log('[UdemyExtractor] Waiting for panel to open...');
+                    const maxWait = 16; // 8 seconds
+                    for (let i = 0; i < maxWait; i++) {
+                        await new Promise(r => setTimeout(r, 500));
+                        if (isTranscriptPanelVisible()) {
+                            console.log('[UdemyExtractor] Panel opened after', (i+1)*500, 'ms');
+                            panelVisible = true;
+                            break;
+                        }
                     }
-                } catch (e) {
-                    console.error('Error with selector:', selector, e);
+                    
+                    if (!panelVisible) {
+                        console.error('[UdemyExtractor] Panel did not open after clicking button');
+                        sendMessageToHost({ type: 'transcriptNotFound', error: 'Panel failed to open' });
+                        return;
+                    }
+                    
+                    // Extra wait for content to load
+                    await new Promise(r => setTimeout(r, 1000));
+                } else {
+                    console.error('[UdemyExtractor] Cannot find transcript button');
+                    sendMessageToHost({ type: 'transcriptNotFound', error: 'Button not found' });
+                    return;
                 }
             }
             
-            if (foundElements.length === 0) {
-                window.chrome.webview.postMessage({ type: 'transcriptNotFound' });
+            // Step 3: Now extract elements
+            console.log('[UdemyExtractor] Panel is open. Extracting content...');
+            elements = findTranscriptElements();
+            
+            // If still no elements, wait a bit more and retry
+            if (elements.length === 0) {
+                console.log('[UdemyExtractor] No elements yet, waiting more...');
+                for (let i = 0; i < 6; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    elements = findTranscriptElements();
+                    if (elements.length > 0) break;
+                }
+            }
+            
+            console.log('[UdemyExtractor] Found', elements.length, 'transcript elements');
+            console.log('[UdemyExtractor] Found', elements.length, 'transcript elements');
+            
+            if (elements.length === 0) {
+                console.warn('[UdemyExtractor] No transcript elements found during extraction');
+                sendMessageToHost({ type: 'transcriptNotFound' });
                 return;
             }
             
-            // Extract text from fallback elements
+            // Extract text from elements
             let transcript = '';
-            foundElements.forEach((element) => {
+            const seenTexts = new Set();
+            
+            elements.forEach((element) => {
                 const text = element.textContent.trim();
-                if (text && text.length > 0) {
+                // Avoid empty lines and potential duplicates
+                if (text && text.length > 0 && !seenTexts.has(text)) {
+                    seenTexts.add(text);
                     transcript += text + '\n';
                 }
             });
             
-            if (transcript.trim().length > 0) {
-                const pageTitle = document.title;
-                const url = window.location.href;
-                const urlParts = window.location.pathname.split('/');
-                
-                let courseSlug = 'Unknown-Course';
-                let lectureId = 'lecture';
-                
-                for (let i = 0; i < urlParts.length; i++) {
-                    if (urlParts[i] === 'course' && urlParts[i + 1]) {
-                        courseSlug = urlParts[i + 1];
-                    }
-                    if (urlParts[i] === 'lecture' && urlParts[i + 1]) {
-                        lectureId = urlParts[i + 1];
-                    }
-                }
-                
-                window.chrome.webview.postMessage({
-                    type: 'transcriptDetected',
-                    content: transcript.trim(),
-                    courseTitle: pageTitle,
-                    courseSlug: courseSlug,
-                    lectureId: lectureId,
-                    url: url,
-                    domain: window.location.hostname
-                });
-            } else {
-                window.chrome.webview.postMessage({ type: 'transcriptNotFound' });
+            console.log('[UdemyExtractor] Extracted text length:', transcript.length);
+            
+            if (transcript.trim().length === 0) {
+                console.warn('[UdemyExtractor] Transcript content is empty');
+                sendMessageToHost({ type: 'transcriptNotFound' });
+                return;
             }
-            return;
-        }
-        
-        // Extract from primary selector (data-purpose=""cue-text"")
-        let transcript = '';
-        cueTexts.forEach((cue, index) => {
-            const text = cue.textContent.trim();
-            if (text && text.length > 0) {
-                transcript += text + '\n';
-            }
-        });
         
         // Get page info
         const pageTitle = document.title;
@@ -469,12 +632,14 @@ public partial class MainWindow : Window
             if (urlParts[i] === 'course' && urlParts[i + 1]) {
                 courseSlug = urlParts[i + 1];
             }
-            if (urlParts[i] === 'lecture' && urlParts[i + 1]) {
+            if ((urlParts[i] === 'lecture' || urlParts[i] === 'learn') && urlParts[i + 1]) {
                 lectureId = urlParts[i + 1];
             }
         }
         
-        window.chrome.webview.postMessage({
+        console.log('[UdemyExtractor] Transcript extracted successfully, length:', transcript.length);
+        
+        sendMessageToHost({
             type: 'transcriptDetected',
             content: transcript.trim(),
             courseTitle: pageTitle,
@@ -483,63 +648,77 @@ public partial class MainWindow : Window
             url: url,
             domain: window.location.hostname
         });
+        
+    } catch (error) {
+        console.error('[UdemyExtractor] Critical error in extractTranscript:', error);
+        sendMessageToHost({ type: 'transcriptNotFound', error: error.toString() });
+    }
+    }
+    
+    // Function to notify that transcript is available
+    function notifyTranscriptAvailable() {
+        console.log('[UdemyExtractor] Transcript panel is available!');
+        sendMessageToHost({
+            type: 'transcriptAvailable'
+        });
+    }
+    
+
+    
+    // Check for transcript panel periodically
+    let checkCount = 0;
+    const maxChecks = 60; // Check for 30 seconds max
+    
+    function checkForTranscript() {
+        checkCount++;
+        
+        // Check for Panel OR Button
+        if (isTranscriptPanelVisible() || findTranscriptElements().length > 0 || findTranscriptButton()) {
+            notifyTranscriptAvailable();
+            return;
+        }
+        
+        if (checkCount < maxChecks) {
+            setTimeout(checkForTranscript, 500);
+        }
     }
     
     // Monitor DOM for transcript appearance
     const observer = new MutationObserver((mutations) => {
-        // Check for transcript panel with actual fpl.udemy.com structure
-        const transcriptSelectors = [
-            '[data-purpose=""transcript-panel""]',
-            '.transcript--transcript-panel--JLceZ',
-            '[data-purpose=""cue-text""]',
-            '.transcript--cue-container--Vuwj6',
-            '[class*=""transcript--cue-container""]',
-            '.ud-component--transcript--cue-container',
-            '[data-purpose*=""transcript""]'
-        ];
-        
-        for (const selector of transcriptSelectors) {
-            try {
-                if (document.querySelector(selector)) {
-                    window.chrome.webview.postMessage({
-                        type: 'transcriptAvailable'
-                    });
-                    observer.disconnect();
-                    return;
-                }
-            } catch (e) {}
+        if (isTranscriptPanelVisible() || findTranscriptElements().length > 0 || findTranscriptButton()) {
+            notifyTranscriptAvailable();
+            // Don't disconnect - user might navigate to another lecture
         }
     });
     
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+    // Start observing
+    if (document.body) {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    // Initial check
+    setTimeout(checkForTranscript, 1000);
+    
+    // Also check when URL changes (for SPA navigation)
+    let lastUrl = location.href;
+    const urlObserver = new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            console.log('[UdemyExtractor] URL changed, rechecking for transcript...');
+            checkCount = 0;
+            setTimeout(checkForTranscript, 1500);
+        }
     });
     
-    // Check immediately on load
-    setTimeout(() => {
-        const transcriptSelectors = [
-            '[data-purpose=""transcript-panel""]',
-            '.transcript--transcript-panel--JLceZ',
-            '[data-purpose=""cue-text""]',
-            '.transcript--cue-container--Vuwj6',
-            '[class*=""transcript--cue-container""]'
-        ];
-        
-        for (const selector of transcriptSelectors) {
-            try {
-                if (document.querySelector(selector)) {
-                    window.chrome.webview.postMessage({
-                        type: 'transcriptAvailable'
-                    });
-                    return;
-                }
-            } catch (e) {}
-        }
-    }, 1000);
+    urlObserver.observe(document, { subtree: true, childList: true });
     
     // Make extract function available globally
     window.extractTranscriptNow = extractTranscript;
+    
+    console.log('[UdemyExtractor] Initialization complete.');
 })();
 ";
 }

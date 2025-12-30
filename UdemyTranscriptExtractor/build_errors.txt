@@ -1,0 +1,15 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(290,9): error CS0103: The name 'TranscriptBanner' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(309,46): error CS0103: The name 'BannerTransform' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(312,45): error CS0103: The name 'TranscriptBanner' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+
+Build FAILED.
+
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(290,9): error CS0103: The name 'TranscriptBanner' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(309,46): error CS0103: The name 'BannerTransform' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\MainWindow.xaml.cs(312,45): error CS0103: The name 'TranscriptBanner' does not exist in the current context [C:\Users\toina\Downloads\Tool_Transcript_Udemy_Course\UdemyTranscriptExtractor\UdemyTranscriptExtractor_vxg1tlkg_wpftmp.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:01.45
