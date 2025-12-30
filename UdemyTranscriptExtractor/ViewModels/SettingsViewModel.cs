@@ -6,7 +6,6 @@ namespace UdemyTranscriptExtractor.ViewModels;
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _settingsService;
-    private readonly MainViewModel _mainViewModel;
 
     [ObservableProperty]
     private string _udemyBaseUrl = "https://fpl.udemy.com";
@@ -14,15 +13,14 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _outputFolder = string.Empty;
 
-    public SettingsViewModel(SettingsService settingsService, MainViewModel mainViewModel)
+    public SettingsViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
-        _mainViewModel = mainViewModel;
         
-        LoadSettingsAsync();
+        _ = LoadSettingsAsync();
     }
 
-    private async void LoadSettingsAsync()
+    private async Task LoadSettingsAsync()
     {
         try
         {
@@ -38,10 +36,10 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnUdemyBaseUrlChanged(string value)
     {
-        SaveUdemyBaseUrlAsync(value);
+        _ = SaveUdemyBaseUrlAsync(value);
     }
 
-    private async void SaveUdemyBaseUrlAsync(string url)
+    private async Task SaveUdemyBaseUrlAsync(string url)
     {
         try
         {

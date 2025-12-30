@@ -7,12 +7,13 @@ namespace UdemyTranscriptExtractor;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsViewModel _viewModel;
+    private readonly FolderPickerService _folderPickerService = new();
 
-    public SettingsWindow(SettingsService settingsService, MainViewModel mainViewModel)
+    public SettingsWindow(SettingsService settingsService)
     {
         InitializeComponent();
         
-        _viewModel = new SettingsViewModel(settingsService, mainViewModel);
+        _viewModel = new SettingsViewModel(settingsService);
         DataContext = _viewModel;
     }
 
@@ -23,20 +24,10 @@ public partial class SettingsWindow : Window
 
     private async void BrowseOutputFolder(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog
+        var folderPath = _folderPickerService.PickFolder();
+        if (!string.IsNullOrWhiteSpace(folderPath))
         {
-            Title = "Select Output Folder",
-            FileName = "Select Folder",
-            Filter = "Folder|*.folder"
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var folderPath = System.IO.Path.GetDirectoryName(dialog.FileName);
-            if (!string.IsNullOrEmpty(folderPath))
-            {
-                await _viewModel.SetOutputFolderAsync(folderPath);
-            }
+            await _viewModel.SetOutputFolderAsync(folderPath);
         }
     }
 }

@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly NotificationService _notificationService;
     private readonly FileService _fileService;
     private readonly SettingsService _settingsService;
+    private readonly FolderPickerService _folderPickerService;
     private readonly EasterEggHandler _easterEggHandler;
     private readonly ConfettiEffect _confettiEffect;
     private Microsoft.Web.WebView2.Wpf.WebView2? _webView;
@@ -29,12 +30,13 @@ public partial class MainWindow : Window
         // Initialize services
         _settingsService = new SettingsService();
         _notificationService = new NotificationService();
-        _fileService = new FileService(_settingsService);
-        var transcriptService = new TranscriptService(_settingsService);
+        _folderPickerService = new FolderPickerService();
+        _fileService = new FileService(_settingsService, _folderPickerService);
         
         // Initialize ViewModel
-        _viewModel = new MainViewModel(transcriptService, _settingsService, _notificationService);
+        _viewModel = new MainViewModel(_settingsService, _notificationService, _folderPickerService);
         DataContext = _viewModel;
+        _viewModel.PropertyChanged += ViewModelOnPropertyChanged;
         
         // Connect ViewModel to MainWindow
         _viewModel.OnExtractTriggered = async () => await TriggerExtractAsync();
@@ -112,6 +114,24 @@ public partial class MainWindow : Window
         {
             _notificationService.ShowError($"Failed to initialize browser: {ex.Message}", "WebView2 Error");
         }
+    }
+
+    private void ViewModelOnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.UdemyBaseUrl))
+        {
+            _ = NavigateToUdemyBaseUrlAsync();
+        }
+    }
+
+    private Task NavigateToUdemyBaseUrlAsync()
+    {
+        if (_webView?.CoreWebView2 == null)
+            return Task.CompletedTask;
+
+        var url = _viewModel.UdemyBaseUrl ?? "https://fpl.udemy.com";
+        _webView.CoreWebView2.Navigate(url);
+        return Task.CompletedTask;
     }
 
     private async void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
@@ -329,7 +349,7 @@ public partial class MainWindow : Window
     
     private void OpenSettingsWindow()
     {
-        var settingsWindow = new SettingsWindow(_settingsService, _viewModel)
+        var settingsWindow = new SettingsWindow(_settingsService)
         {
             Owner = this
         };
