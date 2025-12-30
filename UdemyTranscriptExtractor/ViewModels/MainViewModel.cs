@@ -8,9 +8,9 @@ namespace UdemyTranscriptExtractor.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly TranscriptService _transcriptService;
     private readonly SettingsService _settingsService;
     private readonly NotificationService _notificationService;
+    private readonly FolderPickerService _folderPickerService;
     
     public Action? OnExtractTriggered { get; set; }
     public Action? OnOpenSettingsRequested { get; set; }
@@ -40,17 +40,17 @@ public partial class MainViewModel : ObservableObject
     private string _udemyBaseUrl = "https://fpl.udemy.com";
     
     public MainViewModel(
-        TranscriptService transcriptService,
         SettingsService settingsService,
-        NotificationService notificationService)
+        NotificationService notificationService,
+        FolderPickerService folderPickerService)
     {
-        _transcriptService = transcriptService;
         _settingsService = settingsService;
         _notificationService = notificationService;
+        _folderPickerService = folderPickerService;
         
-        LoadRecentFilesAsync();
-        LoadTotalExtractedCount();
-        LoadUdemyBaseUrl();
+        _ = LoadRecentFilesAsync();
+        _ = LoadTotalExtractedCountAsync();
+        _ = LoadUdemyBaseUrlAsync();
     }
     
     [RelayCommand]
@@ -94,27 +94,17 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectOutputFolderAsync()
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Title = "Select Output Folder",
-            FileName = "Select Folder",
-            Filter = "Folder|*.folder"
-        };
-        
-        if (dialog.ShowDialog() == true)
-        {
-            var settings = await _settingsService.LoadSettingsAsync();
-            var folderPath = System.IO.Path.GetDirectoryName(dialog.FileName);
-            if (!string.IsNullOrEmpty(folderPath))
-            {
-                settings.OutputFolder = folderPath;
-                await _settingsService.SaveSettingsAsync(settings);
-                _notificationService.ShowSuccess($"Output folder set to {folderPath}", "Settings Updated");
-            }
-        }
+        var folderPath = _folderPickerService.PickFolder();
+        if (string.IsNullOrWhiteSpace(folderPath))
+            return;
+
+        var settings = await _settingsService.LoadSettingsAsync();
+        settings.OutputFolder = folderPath;
+        await _settingsService.SaveSettingsAsync(settings);
+        _notificationService.ShowSuccess($"Output folder set to {folderPath}", "Settings Updated");
     }
     
-    private async void LoadRecentFilesAsync()
+    private async Task LoadRecentFilesAsync()
     {
         try
         {
@@ -143,7 +133,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
     
-    private async void LoadTotalExtractedCount()
+    private async Task LoadTotalExtractedCountAsync()
     {
         try
         {
@@ -158,10 +148,10 @@ public partial class MainViewModel : ObservableObject
     
     public void LoadUdemyBaseUrl()
     {
-        LoadUdemyBaseUrlAsync();
+        _ = LoadUdemyBaseUrlAsync();
     }
     
-    private async void LoadUdemyBaseUrlAsync()
+    private async Task LoadUdemyBaseUrlAsync()
     {
         try
         {
@@ -176,10 +166,10 @@ public partial class MainViewModel : ObservableObject
     
     partial void OnUdemyBaseUrlChanged(string value)
     {
-        SaveUdemyBaseUrlAsync(value);
+        _ = SaveUdemyBaseUrlAsync(value);
     }
     
-    private async void SaveUdemyBaseUrlAsync(string url)
+    private async Task SaveUdemyBaseUrlAsync(string url)
     {
         try
         {

@@ -8,36 +8,26 @@ namespace UdemyTranscriptExtractor.Services;
 public class FileService
 {
     private readonly SettingsService _settingsService;
+    private readonly FolderPickerService _folderPickerService;
     private readonly Dictionary<string, int> _courseCounters = new();
     private readonly List<ExtractedFile> _extractedFiles = new();
     
-    public FileService(SettingsService settingsService)
+    public FileService(SettingsService settingsService, FolderPickerService folderPickerService)
     {
         _settingsService = settingsService;
+        _folderPickerService = folderPickerService;
     }
     
     public async Task<string> SelectOutputFolderAsync()
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Title = "Select Output Folder",
-            FileName = "Select Folder",
-            Filter = "Folder|*.folder"
-        };
-        
-        if (dialog.ShowDialog() == true)
-        {
-            var folderPath = Path.GetDirectoryName(dialog.FileName);
-            if (!string.IsNullOrEmpty(folderPath))
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.OutputFolder = folderPath;
-                await _settingsService.SaveSettingsAsync(settings);
-                return folderPath;
-            }
-        }
-        
-        return string.Empty;
+        var folderPath = _folderPickerService.PickFolder();
+        if (string.IsNullOrWhiteSpace(folderPath))
+            return string.Empty;
+
+        var settings = await _settingsService.LoadSettingsAsync();
+        settings.OutputFolder = folderPath;
+        await _settingsService.SaveSettingsAsync(settings);
+        return folderPath;
     }
     
     public async Task<ExtractedFile?> SaveTranscriptAsync(string content, string courseName, string lectureId)
