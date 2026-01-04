@@ -230,5 +230,3 @@ MIT License - see LICENSE file for details
 ---
 
 **Made with ❤️ by dzung9f 🚀**
-
-*Looking like $199 commercial software, but it's free!* ✨
